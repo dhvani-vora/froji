@@ -1,4 +1,4 @@
-# Froji 
+# froji 
 
 A mobile app that helps users track food expiry dates and reduce food waste.
 
