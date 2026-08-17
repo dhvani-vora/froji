@@ -3,6 +3,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// NEW: useRouter lets us navigate programmatically, usePathname tells us
+// which route is currently active so we can highlight the right tab.
+import { usePathname, useRouter } from 'expo-router';
 import FoodCard from '../components/FoodCard';
 import FridgeStatusCard from '../components/FridgeStatusCard';
 import WasteSavingsCard from '../components/WasteSavingsCard';
@@ -32,20 +35,25 @@ const PLACEHOLDER_FOOD: FoodItem[] = [
   { id: '3', emoji: '🥬', name: 'lettuce', expiresText: '4 days left', urgency: 'low' },
 ];
 
-// Visual-only for now — Day 3 wires this up to real navigation.
+// Each tab now carries a real route, matching the file names in app/.
 type NavTab = {
   key: string;
   emoji: string;
   label: string;
+  route: '/' | '/my-fridge' | '/pantry' | '/profile';
 };
 
 const NAV_TABS: NavTab[] = [
-  { key: 'home', emoji: '🏠', label: 'home' },
-  { key: 'add', emoji: '➕', label: 'add' },
-  { key: 'stats', emoji: '📊', label: 'stats' },
+  { key: 'home', emoji: '🏠', label: 'home', route: '/' },
+  { key: 'fridge', emoji: '🧊', label: 'my fridge', route: '/my-fridge' },
+  { key: 'pantry', emoji: '🥫', label: 'pantry', route: '/pantry' },
+  { key: 'profile', emoji: '👤', label: 'profile', route: '/profile' },
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const pathname = usePathname(); // e.g. "/", "/my-fridge", "/pantry", "/profile"
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.decorCircleOne} />
@@ -56,7 +64,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Header */}
+        {/* Header */}
         <View style={styles.brandRow}>
           <View>
             <Text style={styles.brandName}>froji 🥕</Text>
@@ -67,7 +75,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 2. Greeting */}
+        {/* Greeting */}
         <View style={styles.hero}>
           <Text style={styles.heroTitle}>hey bestie, what's in the fridge?</Text>
           <Text style={styles.heroSubtitle}>
@@ -75,12 +83,12 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* 3. Fridge status */}
+        {/* Fridge status */}
         <View style={styles.statusSection}>
           <FridgeStatusCard status="looking fresh ✨" itemCount={8} />
         </View>
 
-        {/* 4. Expiring section */}
+        {/* Expiring section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>what's expiring? 👀</Text>
 
@@ -97,12 +105,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 5. Waste savings */}
+        {/* Waste savings */}
         <View style={styles.section}>
           <WasteSavingsCard itemsSaved={3} />
         </View>
 
-        {/* 6. Generate a recipe button */}
+        {/* Generate a recipe */}
         <Pressable
           style={({ pressed }) => [
             styles.recipeButton,
@@ -113,7 +121,7 @@ export default function HomeScreen() {
           <Text style={styles.recipeButtonText}>generate a recipe 🍳</Text>
         </Pressable>
 
-        {/* 7. Add food button */}
+        {/* Add food */}
         <Pressable
           style={({ pressed }) => [
             styles.addButton,
@@ -125,14 +133,27 @@ export default function HomeScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* 8. Bottom nav placeholder (visual only, no routing) */}
+      {/* Bottom nav — now wired to real Expo Router navigation */}
       <View style={styles.bottomNav}>
-        {NAV_TABS.map((tab) => (
-          <View key={tab.key} style={styles.navTab}>
-            <Text style={styles.navEmoji}>{tab.emoji}</Text>
-            <Text style={styles.navLabel}>{tab.label}</Text>
-          </View>
-        ))}
+        {NAV_TABS.map((tab) => {
+          const isActive = pathname === tab.route;
+          return (
+            // Pressable + router.push() is how we navigate on tap.
+            // (Wrapping the whole tab, not just the icon, for a bigger tap target.)
+            <Pressable
+              key={tab.key}
+              style={styles.navTab}
+              onPress={() => router.push(tab.route)}
+            >
+              <View style={[styles.navIconWrap, isActive && styles.navIconWrapActive]}>
+                <Text style={styles.navEmoji}>{tab.emoji}</Text>
+              </View>
+              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     </SafeAreaView>
   );
@@ -148,7 +169,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
 
   decorCircleOne: {
@@ -281,13 +302,18 @@ const styles = StyleSheet.create({
   },
 
   bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    paddingVertical: 12,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: COLORS.text,
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -296,15 +322,34 @@ const styles = StyleSheet.create({
   },
   navTab: {
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
+    paddingVertical: 2,   // NEW: slightly bigger tap area now it's a Pressable
+    paddingHorizontal: 6,
+  },
+  navIconWrap: {
+    width: 38,             // was 34 — a bit bigger to match the bigger emoji
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  navIconWrapActive: {
+    backgroundColor: COLORS.cardPink,
   },
   navEmoji: {
-    fontSize: 18,
+    fontSize: 20,           // was 17 — bigger, easier to see
   },
   navLabel: {
-    fontSize: 11,
-    color: COLORS.text,
-    opacity: 0.6,
+    fontSize: 13,            // was 11 — bigger, easier to read
+    fontWeight: '600',       // NEW: a bit more weight so it's not too thin/faint
+    color: COLORS.softTeal,  // was COLORS.text at 0.4 opacity — that was too
+                              // light on white. softTeal at full opacity is
+                              // muted but still readable.
     textTransform: 'lowercase',
+  },
+  navLabelActive: {
+    fontWeight: '700',
+    color: COLORS.coral,     // unchanged — active tab still reads coral
   },
 });

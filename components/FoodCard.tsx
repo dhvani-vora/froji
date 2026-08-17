@@ -9,28 +9,31 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
-// The three allowed urgency values. TypeScript will now yell at us
-// if anyone tries to pass urgency="urgent" or anything not in this list.
 type Urgency = 'high' | 'medium' | 'low';
 
-// This describes exactly what FoodCard expects from its parent.
-// Think of it as the "contract" for this component.
 type FoodCardProps = {
   emoji: string;
   name: string;
   expiresText: string;
   urgency: Urgency;
+  quantity?: string;
+  category?: string;
 };
 
-// Badge colors live here now, since badge styling is FoodCard's job.
-// Low-urgency text fixed to #006078 for contrast (was #82BAC4 on #EAF3F4).
 const URGENCY_COLORS: Record<Urgency, { bg: string; text: string }> = {
   high: { bg: '#E37C78', text: '#FFFFFF' },
   medium: { bg: '#FFD4D1', text: '#006078' },
   low: { bg: '#EAF3F4', text: '#006078' },
 };
 
-export default function FoodCard({ emoji, name, expiresText, urgency }: FoodCardProps) {
+export default function FoodCard({
+  emoji,
+  name,
+  expiresText,
+  urgency,
+  quantity,
+  category,
+}: FoodCardProps) {
   const badge = URGENCY_COLORS[urgency];
 
   return (
@@ -40,11 +43,21 @@ export default function FoodCard({ emoji, name, expiresText, urgency }: FoodCard
       </View>
 
       <View style={styles.foodTextGroup}>
-        <Text style={styles.foodName}>{name}</Text>
-        <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-          <Text style={[styles.badgeText, { color: badge.text }]}>
-            {expiresText}
-          </Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.foodName}>{name}</Text>
+          {quantity ? <Text style={styles.quantity}>{quantity}</Text> : null}
+        </View>
+
+        <View style={styles.badge_and_category}>
+          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+            <Text style={[styles.badgeText, { color: badge.text }]}>
+              {expiresText}
+            </Text>
+          </View>
+
+          {category ? (
+            <Text style={styles.category}>{category}</Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -80,10 +93,26 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
   foodName: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
+  },
+  quantity: {
+    fontSize: 13,       // was 13, kept — bumping the color instead
+    color: COLORS.text,
+    opacity: 0.75,       // was 0.55 — noticeably more readable now
+    fontWeight: '500',   // NEW — a touch of weight so it doesn't look washed out
+  },
+  badge_and_category: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -94,5 +123,12 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  category: {
+    fontSize: 13,        // was 12 — a bit bigger
+    color: COLORS.text,
+    opacity: 0.6,          // was 0.45 — more readable
+    fontWeight: '500',     // NEW — small weight bump for legibility
+    textTransform: 'lowercase',
   },
 });
